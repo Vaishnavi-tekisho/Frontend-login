@@ -7,25 +7,68 @@ import { UserModel } from '../models/userModel';
 import * as validation from '../utils/validation';
 
 export class AuthController {
+  /**
+   * Forgot Password: Send OTP to email
+   */
+  async forgotPasswordSendOTP(email) {
+    this.setState({ loading: true, error: '', success: '' });
+    try {
+      await AuthService.forgotPasswordSendOTP(email);
+      this.setState({ loading: false });
+      return true;
+    } catch (err) {
+      this.setState({ loading: false, error: err.message || 'Failed to send OTP' });
+      throw err;
+    }
+  }
+
+  /**
+   * Forgot Password: Verify OTP
+   */
+  async forgotPasswordVerifyOTP(email, otp) {
+    this.setState({ loading: true, error: '', success: '' });
+    try {
+      await AuthService.forgotPasswordVerifyOTP(email, otp);
+      this.setState({ loading: false });
+      return true;
+    } catch (err) {
+      this.setState({ loading: false, error: err.message || 'Invalid or expired OTP' });
+      throw err;
+    }
+  }
+
+  /**
+   * Forgot Password: Reset password
+   */
+  async forgotPasswordResetPassword(email, otp, newPassword) {
+    this.setState({ loading: true, error: '', success: '' });
+    try {
+      await AuthService.forgotPasswordResetPassword(email, otp, newPassword);
+      this.setState({ loading: false });
+      return true;
+    } catch (err) {
+      this.setState({ loading: false, error: err.message || 'Failed to reset password' });
+      throw err;
+    }
+  }
   constructor() {
     this.state = {
       isSignUp: false,
       isForgotPassword: false,
-      accountType: 'PERSONAL',
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       phoneNumber: '',
       password: '',
       confirmPassword: '',
-      organizationCode: '',
       rememberMe: false,
       errors: {
-        name: '',
+        firstName: '',
+        lastName: '',
         email: '',
         phoneNumber: '',
         password: '',
         confirmPassword: '',
-        organizationCode: '',
         otp: ''
       },
       passwordStrength: '',
@@ -40,7 +83,18 @@ export class AuthController {
       otpVerified: false,
       otpExpiry: null,
       otpLoading: false,
-      otpError: ''
+      otpError: '',
+      // Forgot password flow state
+      forgotPasswordStep: 1, // 1=email, 2=otp, 3=reset
+      forgotPasswordOTP: '',
+      forgotPasswordNewPassword: '',
+      forgotPasswordConfirmPassword: '',
+      // Verification state
+      verificationLoading: false,
+      verificationMessage: '',
+      verificationError: '',
+      verificationCooldown: 0,
+      verificationStatus: 'verifying' // verifying, success, error
     };
 
     this.listeners = [];
@@ -115,12 +169,18 @@ export class AuthController {
       isForgotPassword: !this.state.isForgotPassword,
       error: '',
       success: '',
-      errors: {}
+      errors: {},
+      forgotPasswordStep: 1,
+      forgotPasswordOTP: '',
+      forgotPasswordNewPassword: '',
+      forgotPasswordConfirmPassword: '',
+      // Ensure email persists for better UX (autofill from login)
+      email: this.state.email
     });
   }
 
   /**
-   * Handle forgot password submission
+   * Handle forgot password submission - Step 1: Send OTP
    */
   async handleForgotPassword() {
     this.setState({ error: '', success: '' });
@@ -136,20 +196,135 @@ export class AuthController {
     this.setState({ loading: true });
 
     try {
-      // Call the actual API endpoint
-      const response = await AuthService.requestPasswordReset(this.state.email);
+      // Call the forgot password send OTP endpoint
+      await AuthService.forgotPasswordSendOTP(this.state.email);
 
       this.setState({
-        success: response.message || 'If the email exists, a reset link has been sent.',
+        success: 'OTP has been sent to your email.',
         loading: false,
-        email: '' // Clear email after success
+        forgotPasswordStep: 2 // Move to OTP verification step
       });
     } catch (err) {
       this.setState({
-        error: err.message || 'Failed to send reset link',
+        error: err.message || 'Failed to send OTP',
         loading: false
       });
     }
+  }
+
+  /**
+   * Handle forgot password OTP verification - Step 2
+   */
+  async handleForgotPasswordVerifyOTP() {
+    this.setState({ error: '', success: '' });
+
+    if (!this.state.forgotPasswordOTP || this.state.forgotPasswordOTP.length !== 6) {
+      this.setState({ error: 'Please enter the 6-digit OTP' });
+      return;
+    }
+
+    this.setState({ loading: true });
+
+    try {
+      await AuthService.forgotPasswordVerifyOTP(this.state.email, this.state.forgotPasswordOTP);
+
+      this.setState({
+        success: 'OTP verified. Please enter your new password.',
+        loading: false,
+        forgotPasswordStep: 3 // Move to password reset step
+      });
+    } catch (err) {
+      this.setState({
+        error: err.message || 'Invalid or expired OTP',
+        loading: false
+      });
+    }
+  }
+
+  /**
+   * Handle password reset - Step 3
+   */
+  async handleForgotPasswordReset() {
+    this.setState({ error: '', success: '' });
+
+    const trimmedNew = this.state.forgotPasswordNewPassword?.trim() || "";
+    const trimmedConfirm = this.state.forgotPasswordConfirmPassword?.trim() || "";
+
+    console.log("DEBUG: New Pass (trimmed) Length:", trimmedNew.length);
+    console.log("DEBUG: Confirm Pass (trimmed) Length:", trimmedConfirm.length);
+    console.log("DEBUG: Match? (trimmed):", trimmedNew === trimmedConfirm);
+
+    if (!trimmedNew || !trimmedConfirm) {
+      this.setState({ error: 'Please fill in both password fields' });
+      return;
+    }
+
+    if (trimmedNew !== trimmedConfirm) {
+      console.log("DEBUG: Password Mismatch Detected [Controller]");
+      this.setState({ error: 'Passwords do not match [Controller Check]' });
+      return;
+    }
+
+    const passwordValidation = validation.validatePassword(this.state.forgotPasswordNewPassword);
+    if (!passwordValidation.valid) {
+      this.setState({ error: passwordValidation.error });
+      return;
+    }
+
+    this.setState({ loading: true });
+
+    try {
+      const response = await AuthService.forgotPasswordResetPassword(
+        this.state.email,
+        this.state.forgotPasswordOTP,
+        this.state.forgotPasswordNewPassword
+      );
+
+      console.log("DEBUG: Reset response received", response);
+
+      // 1. Store token and user data for automatic login
+      if (response.access_token && response.user) {
+        AuthService.storeToken(response.access_token, this.state.rememberMe);
+        AuthService.storeUserData(response.user);
+      }
+
+      this.setState({
+        success: 'Password reset successfully! Redirecting to dashboard...',
+        loading: false,
+        isLoggedIn: !!response.access_token,
+        userData: response.user || null,
+        isForgotPassword: false
+      });
+
+      // Clear the reset-related state after a short delay if needed, 
+      // but the redirection should happen immediately due to isLoggedIn: true
+    } catch (err) {
+      this.setState({
+        error: err.message || 'Failed to reset password',
+        loading: false
+      });
+    }
+  }
+
+  /**
+   * Handle forgot password OTP change
+   */
+  handleForgotPasswordOTPChange(value) {
+    this.setState({ forgotPasswordOTP: value.replace(/\D/g, '').slice(0, 6) });
+  }
+
+  /**
+   * Handle forgot password new password change
+   */
+  handleForgotPasswordNewPasswordChange(value) {
+    this.setState({ forgotPasswordNewPassword: value });
+  }
+
+  /**
+   * Handle forgot password confirm password change
+   */
+  handleForgotPasswordConfirmPasswordChange(value) {
+    this.setState({ forgotPasswordConfirmPassword: value });
   }
 
   /**
@@ -159,7 +334,8 @@ export class AuthController {
     this.setState({
       isSignUp: !this.state.isSignUp,
       isForgotPassword: false,
-      name: '',
+      firstName: '',
+      lastName: '',
       phoneNumber: '',
       confirmPassword: '',
       error: '',
@@ -170,25 +346,35 @@ export class AuthController {
   }
 
   /**
-   * Handle account type change
+   * Handle first name change with validation
    */
-  setAccountType(accountType) {
-    this.setState({ accountType });
-  }
-
-  /**
-   * Handle name change with validation
-   */
-  handleNameChange(value) {
-    this.setState({ name: value });
+  handleFirstNameChange(value) {
+    this.setState({ firstName: value });
     if (value) {
       const validation_result = validation.validateName(value);
       this.setState({
-        errors: { ...this.state.errors, name: validation_result.error }
+        errors: { ...this.state.errors, firstName: validation_result.error }
       });
     } else {
       this.setState({
-        errors: { ...this.state.errors, name: '' }
+        errors: { ...this.state.errors, firstName: '' }
+      });
+    }
+  }
+
+  /**
+   * Handle last name change with validation
+   */
+  handleLastNameChange(value) {
+    this.setState({ lastName: value });
+    if (value) {
+      const validation_result = validation.validateName(value);
+      this.setState({
+        errors: { ...this.state.errors, lastName: validation_result.error }
+      });
+    } else {
+      this.setState({
+        errors: { ...this.state.errors, lastName: '' }
       });
     }
   }
@@ -197,14 +383,15 @@ export class AuthController {
    * Handle phone number change with validation
    */
   handlePhoneNumberChange(value) {
-    this.setState({ phoneNumber: value });
     if (value) {
       const validation_result = validation.validatePhone(value);
       this.setState({
+        phoneNumber: value,
         errors: { ...this.state.errors, phoneNumber: validation_result.error }
       });
     } else {
       this.setState({
+        phoneNumber: value,
         errors: { ...this.state.errors, phoneNumber: '' }
       });
     }
@@ -271,24 +458,6 @@ export class AuthController {
   }
 
   /**
-   * Handle organization code change with validation
-   */
-  handleOrgCodeChange(value) {
-    const upperValue = value.toUpperCase();
-    this.setState({ organizationCode: upperValue });
-    if (upperValue) {
-      const validation_result = validation.validateOrgCode(upperValue);
-      this.setState({
-        errors: { ...this.state.errors, organizationCode: validation_result.error }
-      });
-    } else {
-      this.setState({
-        errors: { ...this.state.errors, organizationCode: '' }
-      });
-    }
-  }
-
-  /**
    * Handle remember me change
    */
   handleRememberMeChange(checked) {
@@ -302,8 +471,11 @@ export class AuthController {
     const newErrors = {};
 
     if (this.state.isSignUp) {
-      const nameValidation = validation.validateName(this.state.name);
-      if (!nameValidation.valid) newErrors.name = nameValidation.error;
+      const firstNameValidation = validation.validateName(this.state.firstName);
+      if (!firstNameValidation.valid) newErrors.firstName = firstNameValidation.error;
+
+      const lastNameValidation = validation.validateName(this.state.lastName);
+      if (!lastNameValidation.valid) newErrors.lastName = lastNameValidation.error;
 
       if (this.state.phoneNumber) {
         const phoneValidation = validation.validatePhone(this.state.phoneNumber);
@@ -323,11 +495,6 @@ export class AuthController {
         this.state.confirmPassword
       );
       if (!matchValidation.valid) newErrors.confirmPassword = matchValidation.error;
-    }
-
-    if (this.state.accountType === 'CORPORATE' && this.state.organizationCode) {
-      const orgValidation = validation.validateOrgCode(this.state.organizationCode);
-      if (!orgValidation.valid) newErrors.organizationCode = orgValidation.error;
     }
 
     this.setState({ errors: newErrors });
@@ -355,12 +522,11 @@ export class AuthController {
 
     try {
       const data = await AuthService.signup({
-        name: this.state.name,
+        firstName: this.state.firstName,
+        lastName: this.state.lastName,
         email: this.state.email,
         phoneNumber: this.state.phoneNumber,
-        password: this.state.password,
-        accountType: this.state.accountType,
-        organizationCode: this.state.organizationCode
+        password: this.state.password
       });
 
       console.log('✅ Signup successful!', data);
@@ -399,8 +565,6 @@ export class AuthController {
       const data = await AuthService.login({
         email: this.state.email,
         password: this.state.password,
-        accountType: this.state.accountType,
-        organizationCode: this.state.organizationCode,
         rememberMe: this.state.rememberMe
       });
 
@@ -454,7 +618,6 @@ export class AuthController {
       password: '',
       name: '',
       confirmPassword: '',
-      organizationCode: '',
       error: '',
       success: '',
       otpSent: false,
@@ -463,7 +626,8 @@ export class AuthController {
       otpExpiry: null,
       otpError: ''
     });
-    window.location.reload();
+    // Redirect to login page
+    window.location.href = '/login';
   }
 
   /**
@@ -544,6 +708,77 @@ export class AuthController {
   async handleResendOTP() {
     this.setState({ otpCode: '', otpError: '' });
     await this.handleSendOTP();
+  }
+
+  /**
+   * Handle Resend Verification Email
+   */
+  async handleResendVerification(email) {
+    if (this.state.verificationCooldown > 0) return;
+
+    this.setState({ verificationLoading: true, verificationError: '', verificationMessage: '' });
+
+    try {
+      const res = await AuthService.requestEmailVerification(email);
+      this.setState({
+        verificationMessage: res.message || 'Verification email sent!',
+        verificationCooldown: 120, // 2 minutes
+        verificationLoading: false
+      });
+
+      // Start cooldown timer (simple setInterval for this instance)
+      const timer = setInterval(() => {
+        const newCooldown = this.state.verificationCooldown - 1;
+        if (newCooldown <= 0) {
+          clearInterval(timer);
+          this.setState({ verificationCooldown: 0 });
+        } else {
+          this.setState({ verificationCooldown: newCooldown });
+        }
+      }, 1000);
+
+    } catch (err) {
+      let errorMsg = err.message || 'Failed to resend email';
+      if (errorMsg.includes('wait')) {
+        const seconds = parseInt(errorMsg.match(/\d+/)?.[0] || '60');
+        this.setState({ verificationCooldown: seconds });
+      }
+      this.setState({
+        verificationError: errorMsg,
+        verificationLoading: false
+      });
+    }
+  }
+
+  /**
+   * Handle Email Verification Token
+   */
+  async handleVerifyEmail(email, token) {
+    this.setState({ verificationStatus: 'verifying', verificationError: '' });
+
+    if (!token || !email) {
+      this.setState({ verificationStatus: 'error', verificationError: 'Invalid or missing verification details.' });
+      return;
+    }
+
+    try {
+      await AuthService.verifyEmail(email, token);
+
+      // Update local storage user data if it exists
+      const user = AuthService.getUserData();
+      if (user) {
+        user.email_verified = true;
+        AuthService.storeUserData(user);
+        this.setState({ userData: new UserModel(user) });
+      }
+
+      this.setState({ verificationStatus: 'success' });
+    } catch (err) {
+      this.setState({
+        verificationStatus: 'error',
+        verificationError: err.message || 'Verification failed. The link may be expired or invalid.'
+      });
+    }
   }
 }
 

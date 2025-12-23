@@ -35,3 +35,24 @@
 .read-the-docs {
   color: #888;
 }
+
+/* CSS Overrides for react-phone-input-2 */
+.react-tel-input .flag-dropdown {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.react-tel-input .selected-flag {
+  background-color: transparent !important;
+}
+
+.react-tel-input .selected-flag:hover,
+.react-tel-input .selected-flag.open {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  border-radius: 1rem 0 0 1rem !important;
+}
+
+/* Ensure the input text has padding to not overlap the flag */
+.react-tel-input .form-control {
+  padding-left: 48px !important;
+}

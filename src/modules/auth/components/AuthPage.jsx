@@ -4,16 +4,15 @@
  * Following MVC Architecture
  */
 import React, { useState, useEffect } from 'react';
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 // import '../styles/styles-auth.css'
 
 // Import Views
 import LoginForm from '../views/LoginForm';
-import LoginSuccess from '../views/LoginSuccess';
 import OAuthSuccess from "../views/OAuthSuccess";
-import ResetPassword from "../views/ResetPassword";
 import ForgotPasswordForm from '../views/ForgetPasswordForm';
-import OtpVerification from '../views/OtpVerification';
+import VerifyEmailPage from '../views/VerifyEmailPage';
+import VerificationSuccessPage from '../views/VerificationSuccessPage';
 
 // Import Controller
 import { AuthController } from '../controllers/authController';
@@ -21,6 +20,7 @@ import { AuthController } from '../controllers/authController';
 function AuthPage() {
   const [authController] = useState(() => new AuthController());
   const [state, setState] = useState(authController.getState());
+  const navigate = useNavigate();
 
   // Subscribe to controller state changes
   useEffect(() => {
@@ -34,16 +34,33 @@ function AuthPage() {
     return unsubscribe;
   }, [authController]);
 
+  // Redirect to dashboard (or verify email) when user becomes logged in
+  useEffect(() => {
+    if (state.isLoggedIn) {
+      const currentPath = window.location.pathname;
+      if (state.userData && !state.userData.email_verified) {
+        // Only redirect to verify-email if not already on verification pages
+        if (!currentPath.includes('/verify-email') && !currentPath.includes('/verification-success')) {
+          navigate('/login/verify-email', { replace: true });
+        }
+      } else {
+        // If verified, go to dashboard
+        if (!currentPath.includes('/dashboard')) {
+          navigate('/dashboard', { replace: true });
+        }
+      }
+    }
+  }, [state.isLoggedIn, state.userData, navigate]);
+
   // Handler functions that delegate to controller
   const handlers = {
     onToggleMode: () => authController.toggleAuthMode(),
-    onAccountTypeChange: (type) => authController.setAccountType(type),
-    onNameChange: (value) => authController.handleNameChange(value),
+    onFirstNameChange: (value) => authController.handleFirstNameChange(value),
+    onLastNameChange: (value) => authController.handleLastNameChange(value),
     onEmailChange: (value) => authController.handleEmailChange(value),
     onPhoneNumberChange: (value) => authController.handlePhoneNumberChange(value),
     onPasswordChange: (value) => authController.handlePasswordChange(value),
     onConfirmPasswordChange: (value) => authController.handleConfirmPasswordChange(value),
-    onOrgCodeChange: (value) => authController.handleOrgCodeChange(value),
     onRememberMeChange: (checked) => authController.handleRememberMeChange(checked),
     onSubmit: () => authController.handleSubmit(),
     onGoogleLogin: () => authController.handleGoogleLogin(),
@@ -52,74 +69,88 @@ function AuthPage() {
     onOTPCodeChange: (value) => authController.handleOTPCodeChange(value),
     onSendOTP: () => authController.handleSendOTP(),
     onVerifyOTP: () => authController.handleVerifyOTP(),
-    onResendOTP: () => authController.handleResendOTP()
+    onResendOTP: () => authController.handleResendOTP(),
+    // Forgot password handler
+    onForgotPasswordSubmit: () => authController.handleForgotPassword(),
+    onForgotPasswordVerifyOTP: () => authController.handleForgotPasswordVerifyOTP(),
+    onForgotPasswordReset: () => authController.handleForgotPasswordReset(),
+    onForgotPasswordOTPChange: (value) => authController.handleForgotPasswordOTPChange(value),
+    onForgotPasswordNewPasswordChange: (value) => authController.handleForgotPasswordNewPasswordChange(value),
+    onForgotPasswordConfirmPasswordChange: (value) => authController.handleForgotPasswordConfirmPasswordChange(value),
+    // Email verification handlers
+    onResendVerification: (email) => authController.handleResendVerification(email),
+    onVerifyEmail: (email, token) => authController.handleVerifyEmail(email, token)
   };
+
+  // If logged in and at the root of auth page, show loading while redirecting
+  // Otherwise, allow nested routes (like verify-email) to render
+  if (state.isLoggedIn && window.location.pathname === '/login') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-cyan-600">
+        <p className="text-white text-xl">Redirecting...</p>
+      </div>
+    );
+  }
 
   return (
     <Routes>
       {/* MAIN LOGIN / SIGNUP PAGE */}
-      <Route path="/dashboard" />
       <Route
         path="/"
         element={
-          state.isLoggedIn ? (
-            <LoginSuccess
-              userData={state.userData}
-              onLogout={handlers.onLogout}
-            />
-          ) : (
-            <LoginForm
-              isSignUp={state.isSignUp}
-              accountType={state.accountType}
-              name={state.name}
-              email={state.email}
-              phoneNumber={state.phoneNumber}
-              password={state.password}
-              confirmPassword={state.confirmPassword}
-              organizationCode={state.organizationCode}
-              rememberMe={state.rememberMe}
-              errors={state.errors}
-              passwordStrength={state.passwordStrength}
-              loading={state.loading}
-              error={state.error}
-              success={state.success}
-              onToggleMode={handlers.onToggleMode}
-              onAccountTypeChange={handlers.onAccountTypeChange}
-              onNameChange={handlers.onNameChange}
-              onEmailChange={handlers.onEmailChange}
-              onPhoneNumberChange={handlers.onPhoneNumberChange}
-              onPasswordChange={handlers.onPasswordChange}
-              onConfirmPasswordChange={handlers.onConfirmPasswordChange}
-              onOrgCodeChange={handlers.onOrgCodeChange}
-              onRememberMeChange={handlers.onRememberMeChange}
-              onSubmit={handlers.onSubmit}
-              onGoogleLogin={handlers.onGoogleLogin}
-              otpSent={state.otpSent}
-              otpCode={state.otpCode}
-              otpVerified={state.otpVerified}
-              otpLoading={state.otpLoading}
-              otpError={state.otpError}
-              onOTPCodeChange={handlers.onOTPCodeChange}
-              onSendOTP={handlers.onSendOTP}
-              onVerifyOTP={handlers.onVerifyOTP}
-              onResendOTP={handlers.onResendOTP}
-              isForgotPassword={state.isForgotPassword}
-              onToggleForgotPassword={() => authController.toggleForgotPassword()}
-              onForgotPasswordSubmit={handlers.onSendOTP}
-            />
-          )
+          <LoginForm
+            isSignUp={state.isSignUp}
+            firstName={state.firstName}
+            lastName={state.lastName}
+            email={state.email}
+            phoneNumber={state.phoneNumber}
+            password={state.password}
+            confirmPassword={state.confirmPassword}
+            rememberMe={state.rememberMe}
+            errors={state.errors}
+            passwordStrength={state.passwordStrength}
+            loading={state.loading}
+            error={state.error}
+            success={state.success}
+            onToggleMode={handlers.onToggleMode}
+            onFirstNameChange={handlers.onFirstNameChange}
+            onLastNameChange={handlers.onLastNameChange}
+            onEmailChange={handlers.onEmailChange}
+            onPhoneNumberChange={handlers.onPhoneNumberChange}
+            onPasswordChange={handlers.onPasswordChange}
+            onConfirmPasswordChange={handlers.onConfirmPasswordChange}
+            onRememberMeChange={handlers.onRememberMeChange}
+            onSubmit={handlers.onSubmit}
+            onGoogleLogin={handlers.onGoogleLogin}
+            otpSent={state.otpSent}
+            otpCode={state.otpCode}
+            otpVerified={state.otpVerified}
+            otpLoading={state.otpLoading}
+            otpError={state.otpError}
+            onOTPCodeChange={handlers.onOTPCodeChange}
+            onSendOTP={handlers.onSendOTP}
+            onVerifyOTP={handlers.onVerifyOTP}
+            onResendOTP={handlers.onResendOTP}
+            isForgotPassword={state.isForgotPassword}
+            onToggleForgotPassword={() => authController.toggleForgotPassword()}
+            onForgotPasswordSubmit={handlers.onForgotPasswordSubmit}
+            forgotPasswordStep={state.forgotPasswordStep}
+            forgotPasswordOTP={state.forgotPasswordOTP}
+            forgotPasswordNewPassword={state.forgotPasswordNewPassword}
+            forgotPasswordConfirmPassword={state.forgotPasswordConfirmPassword}
+            onForgotPasswordOTPChange={handlers.onForgotPasswordOTPChange}
+            onForgotPasswordVerifyOTP={handlers.onForgotPasswordVerifyOTP}
+            onForgotPasswordNewPasswordChange={handlers.onForgotPasswordNewPasswordChange}
+            onForgotPasswordConfirmPasswordChange={handlers.onForgotPasswordConfirmPasswordChange}
+            onForgotPasswordReset={handlers.onForgotPasswordReset}
+          />
         }
       />
 
-      {/* SUCCESS ROUTE (USED BY OAUTH) */}
+      {/* SUCCESS ROUTE - Redirect to dashboard */}
       <Route
         path="/success"
-        element={
-          <LoginSuccess
-            userData={state.userData}
-            onLogout={handlers.onLogout}
-          />
-        }
+        element={<Navigate to="/dashboard" replace />}
       />
 
       {/* GOOGLE OAUTH CALLBACK HANDLER */}
@@ -128,42 +159,31 @@ function AuthPage() {
       {/* FORGOT PASSWORD FLOW */}
       <Route
         path="/forgot-password"
+        element={<ForgotPasswordForm />}
+      />
+
+      {/* EMAIL VERIFICATION */}
+      <Route
+        path="/verify-email"
         element={
-          <ForgotPasswordForm
-            email={state.email}
-            onEmailChange={handlers.onEmailChange}
-            onSendOTP={handlers.onSendOTP}
-            loading={state.loading}
-            error={state.error}
-            success={state.success}
+          <VerifyEmailPage
+            userData={state.userData}
+            loading={state.verificationLoading}
+            message={state.verificationMessage}
+            error={state.verificationError}
+            cooldown={state.verificationCooldown}
+            onResend={handlers.onResendVerification}
+            onBackToLogin={handlers.onLogout}
           />
         }
       />
       <Route
-        path="/verify-otp"
+        path="/verification-success"
         element={
-          <OtpVerification
-            otp={state.otpCode}
-            onOtpChange={handlers.onOTPCodeChange}
-            onVerifyOtp={handlers.onVerifyOTP}
-            loading={state.otpLoading}
-            error={state.otpError}
-            success={state.success}
-          />
-        }
-      />
-      <Route
-        path="/reset-password"
-        element={
-          <ResetPassword
-            newPassword={state.password}
-            confirmPassword={state.confirmPassword}
-            onNewPasswordChange={handlers.onPasswordChange}
-            onConfirmPasswordChange={handlers.onConfirmPasswordChange}
-            onResetPassword={handlers.onSubmit}
-            loading={state.loading}
-            error={state.error}
-            success={state.success}
+          <VerificationSuccessPage
+            status={state.verificationStatus}
+            error={state.verificationError}
+            onVerify={handlers.onVerifyEmail}
           />
         }
       />

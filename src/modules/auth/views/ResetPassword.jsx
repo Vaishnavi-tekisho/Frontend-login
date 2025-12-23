@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../models/authService';
 import { validatePassword, validatePasswordMatch } from '../utils/validation';
-
 export default function ResetPassword() {
     const navigate = useNavigate();
     const [token, setToken] = useState('');

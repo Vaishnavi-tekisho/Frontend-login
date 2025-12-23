@@ -44,9 +44,9 @@ export default function OAuthSuccess() {
           }
         }
         
-        // Redirect to home page
+        // Redirect to dashboard
         setTimeout(() => {
-          window.location.href = "/";
+          window.location.href = "/dashboard";
         }, 500);
       } catch (err) {
         console.error("❌ Error storing token:", err);

@@ -36,7 +36,7 @@ export const validateEmail = (email) => {
   // Rule 5: Must have valid domain (check for common domains or at least proper structure)
   const parts = trimmedEmail.split('@');
   const domain = parts[1];
-  
+
   if (!domain || domain.length < 3) {
     return { valid: false, error: 'Email must have a valid domain' };
   }
@@ -65,10 +65,8 @@ export const validatePassword = (password) => {
     return { valid: false, error: 'Password is required' };
   }
 
-  // Rule 2: Must start with a capital letter
-  if (!/^[A-Z]/.test(password)) {
-    return { valid: false, error: 'Password must start with a capital letter' };
-  }
+  // Rule 2: Length check (already covers minimum 8 in rule 3, but let's keep it clean)
+  // Removed strict "Must start with capital letter" as it's too restrictive for some users
 
   // Rule 3: Minimum length (8 characters)
   if (password.length < 8) {
@@ -107,10 +105,10 @@ export const validatePassword = (password) => {
   }
 
   // All rules passed - calculate strength
-  return { 
-    valid: true, 
-    error: '', 
-    strength: calculatePasswordStrength(password) 
+  return {
+    valid: true,
+    error: '',
+    strength: calculatePasswordStrength(password)
   };
 };
 
@@ -175,31 +173,6 @@ export const validateName = (name) => {
 };
 
 // ============================================
-// ORGANIZATION CODE VALIDATION RULES
-// ============================================
-export const validateOrgCode = (code) => {
-  if (!code) {
-    return { valid: false, error: 'Organization code is required' };
-  }
-
-  // Alphanumeric only, 3-20 characters, uppercase
-  if (code.length < 3) {
-    return { valid: false, error: 'Organization code must be at least 3 characters' };
-  }
-
-  if (code.length > 20) {
-    return { valid: false, error: 'Organization code must not exceed 20 characters' };
-  }
-
-  const orgCodeRegex = /^[A-Z0-9]+$/;
-  if (!orgCodeRegex.test(code)) {
-    return { valid: false, error: 'Organization code must contain only uppercase letters and numbers' };
-  }
-
-  return { valid: true, error: '' };
-};
-
-// ============================================
 // PASSWORD MATCH VALIDATION
 // ============================================
 export const validatePasswordMatch = (password, confirmPassword) => {
@@ -222,19 +195,27 @@ export const validatePhone = (phone, countryCode = '+1') => {
     return { valid: false, error: 'Phone number is required' };
   }
 
-  // Remove all non-digit characters
-  const cleanPhone = phone.replace(/\D/g, '');
+  const trimmedPhone = phone.trim();
 
-  // Check length based on country (US: 10 digits, India: 10 digits)
-  const minLength = 10;
-  const maxLength = 15;
-
-  if (cleanPhone.length < minLength) {
-    return { valid: false, error: `Phone number must be at least ${minLength} digits` };
+  // Strict format check: Must start with + followed by digits
+  if (!/^\+\d+$/.test(trimmedPhone)) {
+    return { valid: false, error: 'Phone number must be in format: (e.g., +91)' };
   }
 
-  if (cleanPhone.length > maxLength) {
-    return { valid: false, error: `Phone number must not exceed ${maxLength} digits` };
+  // Remove the leading + to count digits
+  const digits = trimmedPhone.substring(1);
+
+  // Relaxed validation: Just check for general length (min 8, max 16 digits total)
+  // This supports varied international lengths (e.g. +291...)
+  const minLength = 8;
+  const maxLength = 16;
+
+  if (digits.length < minLength) {
+    return { valid: false, error: 'Enter a valid phone number for the selected country' };
+  }
+
+  if (digits.length > maxLength) {
+    return { valid: false, error: 'Enter a valid phone number for the selected country' };
   }
 
   return { valid: true, error: '' };

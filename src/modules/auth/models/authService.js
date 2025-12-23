@@ -7,6 +7,71 @@ const API_URL = 'http://localhost:8000';
 
 export class AuthService {
   /**
+   * Forgot Password: Send OTP to email
+   * @param {string} email
+   */
+  static async forgotPasswordSendOTP(email) {
+    try {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || 'Failed to send OTP');
+      }
+      return data;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  /**
+   * Forgot Password: Verify OTP
+   * @param {string} email
+   * @param {string} otp
+   */
+  static async forgotPasswordVerifyOTP(email, otp) {
+    try {
+      const response = await fetch(`${API_URL}/auth/verify-reset-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || 'Invalid or expired OTP');
+      }
+      return data;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  /**
+   * Forgot Password: Reset password
+   * @param {string} email
+   * @param {string} otp
+   * @param {string} newPassword
+   */
+  static async forgotPasswordResetPassword(email, otp, newPassword) {
+    try {
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, new_password: newPassword }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || 'Failed to reset password');
+      }
+      return data;
+    } catch (err) {
+      throw err;
+    }
+  }
+  /**
    * Sign up a new user
    * @param {Object} userData - User signup data
    * @returns {Promise<Object>} Response with token and user data
@@ -17,12 +82,11 @@ export class AuthService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: userData.name,
+          first_name: userData.firstName,
+          last_name: userData.lastName,
           email: userData.email,
           phone_number: userData.phoneNumber,
-          password: userData.password,
-          account_type: userData.accountType,
-          organization_code: userData.accountType === 'CORPORATE' ? userData.organizationCode : null
+          password: userData.password
         }),
       });
 
@@ -69,8 +133,6 @@ export class AuthService {
         body: JSON.stringify({
           email: userData.email,
           password: userData.password,
-          account_type: userData.accountType,
-          organization_code: userData.accountType === 'CORPORATE' ? userData.organizationCode : null,
           remember_me: userData.rememberMe
         }),
       });
@@ -158,6 +220,47 @@ export class AuthService {
   }
 
   /**
+   * Request email verification (Resend)
+   * @param {string} email - User email
+   */
+  static async requestEmailVerification(email) {
+    try {
+      const response = await fetch(`${API_URL}/auth/request-verification?email=${encodeURIComponent(email)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || 'Failed to request verification email');
+      }
+      return data;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  /**
+   * Verify email with token
+   * @param {string} email - User email
+   * @param {string} token - Verification token
+   */
+  static async verifyEmail(email, token) {
+    try {
+      const response = await fetch(`${API_URL}/auth/verify-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || 'Verification failed');
+      }
+      return data;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  /**
    * Resend OTP (same as sendOTP)
    * @param {string} phoneNumber - Phone number
    * @returns {Promise<Object>} Response with success status
@@ -173,7 +276,7 @@ export class AuthService {
    */
   static async requestPasswordReset(email) {
     try {
-      const response = await fetch(`${API_URL}/auth/request-password-reset`, {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

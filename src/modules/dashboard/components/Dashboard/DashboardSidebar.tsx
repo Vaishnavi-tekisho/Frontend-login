@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setActiveSection, setActiveSubSection } from '../../store/slices/dashboardSlice';
+import { AuthService } from '../../../auth/models/authService';
 
 
 interface SidebarItem {
@@ -84,7 +85,7 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
       navigate(item.link)
       return
     }
-    
+
     if (isSubItem) {
       dispatch(setActiveSubSection(itemId))
     } else {
@@ -136,11 +137,10 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
               dispatch(setActiveSection('dashboard'))
               dispatch(setActiveSubSection(''))
             }}
-            className={`w-full px-3 py-2.5 flex items-center space-x-3 text-left transition-all rounded-lg ${
-              activeSection === 'dashboard' || (!activeSection && !activeSubSection)
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
-            }`}
+            className={`w-full px-3 py-2.5 flex items-center space-x-3 text-left transition-all rounded-lg ${activeSection === 'dashboard' || (!activeSection && !activeSubSection)
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
+              }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -155,11 +155,10 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
             <div key={item.id}>
               <button
                 onClick={() => handleItemClick(item.id)}
-                className={`group w-full px-3 py-2.5 flex items-center justify-between text-left transition-all rounded-lg ${
-                  activeSection === item.id 
-                    ? 'bg-blue-600 text-white shadow-md' 
-                    : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
-                }`}
+                className={`group w-full px-3 py-2.5 flex items-center justify-between text-left transition-all rounded-lg ${activeSection === item.id
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
+                  }`}
               >
                 <div className="flex items-center space-x-3">
                   <span>{item.icon}</span>
@@ -167,9 +166,8 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
                 </div>
                 {item.subItems && (
                   <svg
-                    className={`w-4 h-4 transition-all ${
-                      expandedSections.includes(item.id) ? 'rotate-90' : ''
-                    }`}
+                    className={`w-4 h-4 transition-all ${expandedSections.includes(item.id) ? 'rotate-90' : ''
+                      }`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -186,11 +184,10 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
                     <button
                       key={subItem.id}
                       onClick={() => handleItemClick(subItem.id, true, subItem)}
-                      className={`group w-full px-3 py-2 flex items-center justify-between text-left transition-all rounded-lg ${
-                        activeSubSection === subItem.id 
-                          ? 'bg-white text-slate-900 shadow-sm' 
-                          : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
-                      }`}
+                      className={`group w-full px-3 py-2 flex items-center justify-between text-left transition-all rounded-lg ${activeSubSection === subItem.id
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
+                        }`}
                     >
                       <div className="flex items-center space-x-2">
                         <span>{subItem.icon}</span>
@@ -213,11 +210,10 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
             <div key={item.id}>
               <button
                 onClick={() => handleItemClick(item.id)}
-                className={`group w-full px-3 py-2.5 flex items-center justify-between text-left transition-all rounded-lg ${
-                  activeSection === item.id 
-                    ? 'bg-white text-slate-900 shadow-sm' 
-                    : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
-                }`}
+                className={`group w-full px-3 py-2.5 flex items-center justify-between text-left transition-all rounded-lg ${activeSection === item.id
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
+                  }`}
               >
                 <div className="flex items-center space-x-3">
                   <span>{item.icon}</span>
@@ -225,9 +221,8 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
                 </div>
                 {item.subItems && (
                   <svg
-                    className={`w-4 h-4 transition-all ${
-                      expandedSections.includes(item.id) ? 'rotate-90' : ''
-                    }`}
+                    className={`w-4 h-4 transition-all ${expandedSections.includes(item.id) ? 'rotate-90' : ''
+                      }`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -247,20 +242,18 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
                         <div key={subItem.id}>
                           <button
                             onClick={() => toggleSection(subItem.id)}
-                            className={`group w-full px-3 py-2 flex items-center justify-between text-left transition-all rounded-lg ${
-                              activeSubSection?.startsWith(subItem.id)
-                                ? 'bg-white text-slate-900 shadow-sm' 
-                                : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
-                            }`}
+                            className={`group w-full px-3 py-2 flex items-center justify-between text-left transition-all rounded-lg ${activeSubSection?.startsWith(subItem.id)
+                              ? 'bg-white text-slate-900 shadow-sm'
+                              : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
+                              }`}
                           >
                             <div className="flex items-center space-x-2">
                               <span>{subItem.icon}</span>
                               <span className="text-sm">{subItem.label}</span>
                             </div>
                             <svg
-                              className={`w-3 h-3 transition-all ${
-                                expandedSections.includes(subItem.id) ? 'rotate-90' : ''
-                              }`}
+                              className={`w-3 h-3 transition-all ${expandedSections.includes(subItem.id) ? 'rotate-90' : ''
+                                }`}
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -274,11 +267,10 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
                                 <button
                                   key={nestedItem.id}
                                   onClick={() => handleItemClick(nestedItem.id, true)}
-                                  className={`w-full px-3 py-2 flex items-center justify-between text-left transition-all rounded-lg ${
-                                    activeSubSection === nestedItem.id 
-                                      ? 'bg-white text-slate-900 shadow-sm' 
-                                      : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
-                                  }`}
+                                  className={`w-full px-3 py-2 flex items-center justify-between text-left transition-all rounded-lg ${activeSubSection === nestedItem.id
+                                    ? 'bg-white text-slate-900 shadow-sm'
+                                    : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
+                                    }`}
                                 >
                                   <div className="flex items-center space-x-2">
                                     <span>{nestedItem.icon}</span>
@@ -299,11 +291,10 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
                       <button
                         key={subItem.id}
                         onClick={() => handleItemClick(subItem.id, true)}
-                        className={`group w-full px-3 py-2 flex items-center justify-between text-left transition-all rounded-lg ${
-                          activeSubSection === subItem.id 
-                            ? 'bg-white text-slate-900 shadow-sm' 
-                            : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
-                        }`}
+                        className={`group w-full px-3 py-2 flex items-center justify-between text-left transition-all rounded-lg ${activeSubSection === subItem.id
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600'
+                          }`}
                       >
                         <div className="flex items-center space-x-2">
                           <span>{subItem.icon}</span>
@@ -324,7 +315,7 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
 
       {/* User Profile */}
       <div className="p-4 border-t border-slate-200 bg-white">
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 mb-3">
           <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
             <span className="text-white font-semibold text-sm">SK</span>
           </div>
@@ -333,6 +324,23 @@ const DashboardSidebar = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () 
             <p className="text-slate-500 text-xs">ShivaniKarnati@gmail.com</p>
           </div>
         </div>
+
+        {/* Sign Out Button */}
+        <button
+          onClick={() => {
+            // Clear authentication using AuthService
+            AuthService.clearToken();
+            AuthService.clearUserData();
+            // Redirect to login page
+            window.location.href = '/login';
+          }}
+          className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 rounded-lg transition-all duration-200 border border-red-200 hover:border-red-300"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span className="font-medium text-sm">Sign Out</span>
+        </button>
       </div>
     </div>
   )

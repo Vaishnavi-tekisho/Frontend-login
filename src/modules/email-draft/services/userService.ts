@@ -3,10 +3,17 @@ import { API_BASE_URL, API_ENDPOINTS, getAuthHeader } from '../config/api';
 export interface User {
     id: string;
     email: string;
-    username: string;
-    full_name?: string;
-    created_at: string;
+    first_name?: string;
+    last_name?: string;
+    full_name?: string; // Derived or optional
+    phone_number?: string;
+    location?: string;
+    profile_image_url?: string;
     is_active: boolean;
+    email_verified: boolean;
+    acc_created_at: string;
+    acc_updated_at: string;
+    last_login?: string;
 }
 
 class UserService {

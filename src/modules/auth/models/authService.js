@@ -246,9 +246,10 @@ export class AuthService {
    */
   static async verifyEmail(email, token) {
     try {
-      const response = await fetch(`${API_URL}/auth/verify-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      const response = await fetch(`${API_URL}/auth/verify-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, token })
       });
       const data = await response.json();
       if (!response.ok) {

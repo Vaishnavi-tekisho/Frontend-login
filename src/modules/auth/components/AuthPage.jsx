@@ -38,14 +38,22 @@ function AuthPage() {
   useEffect(() => {
     if (state.isLoggedIn) {
       const currentPath = window.location.pathname;
+      console.log('🔄 [AuthPage Redirect Check]', {
+        currentPath,
+        isLoggedIn: state.isLoggedIn,
+        verified: state.userData?.email_verified
+      });
+
       if (state.userData && !state.userData.email_verified) {
         // Only redirect to verify-email if not already on verification pages
         if (!currentPath.includes('/verify-email') && !currentPath.includes('/verification-success')) {
+          console.log('➡️ Redirecting to verify-email');
           navigate('/login/verify-email', { replace: true });
         }
       } else {
         // If verified, go to dashboard
         if (!currentPath.includes('/dashboard')) {
+          console.log('➡️ Redirecting to dashboard');
           navigate('/dashboard', { replace: true });
         }
       }

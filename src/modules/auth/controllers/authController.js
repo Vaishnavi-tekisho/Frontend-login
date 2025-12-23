@@ -754,6 +754,12 @@ export class AuthController {
    * Handle Email Verification Token
    */
   async handleVerifyEmail(email, token) {
+    // Prevent duplicate calls (React.StrictMode or multiple clicks)
+    if (this._verifyingToken === token || this.state.verificationStatus === 'success') {
+      return;
+    }
+    this._verifyingToken = token;
+
     this.setState({ verificationStatus: 'verifying', verificationError: '' });
 
     if (!token || !email) {
@@ -762,23 +768,49 @@ export class AuthController {
     }
 
     try {
-      await AuthService.verifyEmail(email, token);
+      console.log('📡 Verifying email for:', email);
+      const response = await AuthService.verifyEmail(email, token);
+      console.log('📩 Verification response:', response);
 
-      // Update local storage user data if it exists
-      const user = AuthService.getUserData();
-      if (user) {
-        user.email_verified = true;
-        AuthService.storeUserData(user);
-        this.setState({ userData: new UserModel(user) });
+      // Handle automatic login if token/user data provided
+      if (response.access_token && response.user) {
+        console.log('🔑 Storing access token and user data');
+        AuthService.storeToken(response.access_token, true); // remember verification sessions
+        AuthService.storeUserData(response.user);
+
+        this.setState({
+          isLoggedIn: true,
+          userData: new UserModel(response.user),
+          verificationStatus: 'success',
+          verificationError: ''
+        });
+        console.log('✅ Automatic login after successful email verification');
+      } else {
+        console.warn('⚠️ No token/user returned from verification, checking existing session');
+        // Fallback: Just update local storage if user was already logged in
+        const user = AuthService.getUserData();
+        const existingToken = AuthService.getToken();
+
+        if (existingToken && user) {
+          user.email_verified = true;
+          AuthService.storeUserData(user);
+          this.setState({
+            isLoggedIn: true,
+            userData: new UserModel(user),
+            verificationStatus: 'success',
+            verificationError: ''
+          });
+        } else {
+          console.error('❌ No session found and no new token provided');
+          this.setState({ verificationStatus: 'success' });
+        }
       }
-
-      this.setState({ verificationStatus: 'success' });
     } catch (err) {
+      console.error('❌ Verification Error:', err);
       this.setState({
         verificationStatus: 'error',
-        verificationError: err.message || 'Verification failed. The link may be expired or invalid.'
+        verificationError: err.message || 'Verification failed. Please try again or request a new link.'
       });
     }
   }
 }
-

@@ -43,7 +43,7 @@ export default function VerificationSuccessPage({
                             Your email has been successfully verified. You now have full access to the dashboard.
                         </p>
                         <button
-                            onClick={() => window.location.href = '/dashboard'}
+                            onClick={() => navigate('/dashboard')}
                             className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl font-bold text-lg shadow-lg shadow-emerald-500/30 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                         >
                             Continue to Dashboard

@@ -23,11 +23,20 @@ const ProtectedRoute = ({ children }) => {
   const isAuthenticated = AuthService.isAuthenticated();
   const user = AuthService.getUserData();
 
+  console.log('🛡️ [ProtectedRoute]', {
+    path: window.location.pathname,
+    isAuthenticated,
+    userEmail: user?.email,
+    verified: user?.email_verified
+  });
+
   if (!isAuthenticated) {
+    console.log('🚫 Not authenticated, redirecting to /login');
     return <Navigate to="/login" replace />;
   }
 
   if (user && !user.email_verified) {
+    console.log('📧 Email not verified, redirecting to /login/verify-email');
     return <Navigate to="/login/verify-email" replace />;
   }
 

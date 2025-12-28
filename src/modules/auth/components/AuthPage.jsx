@@ -60,6 +60,13 @@ function AuthPage() {
     }
   }, [state.isLoggedIn, state.userData, navigate]);
 
+  // Debugging: Log current path and state
+  console.log('🛡️ [AuthPage Render]', {
+    path: window.location.pathname,
+    isLoggedIn: state.isLoggedIn,
+    verificationStatus: state.verificationStatus
+  });
+
   // Handler functions that delegate to controller
   const handlers = {
     onToggleMode: () => authController.toggleAuthMode(),
@@ -94,7 +101,7 @@ function AuthPage() {
   // Otherwise, allow nested routes (like verify-email) to render
   if (state.isLoggedIn && window.location.pathname === '/login') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-cyan-600">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0D6EFD] via-[#2B8FE6] to-[#3AA0FF]">
         <p className="text-white text-xl">Redirecting...</p>
       </div>
     );
@@ -157,22 +164,22 @@ function AuthPage() {
 
       {/* SUCCESS ROUTE - Redirect to dashboard */}
       <Route
-        path="/success"
+        path="success"
         element={<Navigate to="/dashboard" replace />}
       />
 
       {/* GOOGLE OAUTH CALLBACK HANDLER */}
-      <Route path="/oauth-success" element={<OAuthSuccess />} />
+      <Route path="oauth-success" element={<OAuthSuccess />} />
 
       {/* FORGOT PASSWORD FLOW */}
       <Route
-        path="/forgot-password"
+        path="forgot-password"
         element={<ForgotPasswordForm />}
       />
 
       {/* EMAIL VERIFICATION */}
       <Route
-        path="/verify-email"
+        path="verify-email"
         element={
           <VerifyEmailPage
             userData={state.userData}
@@ -186,13 +193,33 @@ function AuthPage() {
         }
       />
       <Route
-        path="/verification-success"
+        path="verification-success"
         element={
           <VerificationSuccessPage
             status={state.verificationStatus}
             error={state.verificationError}
             onVerify={handlers.onVerifyEmail}
           />
+        }
+      />
+
+      {/* Fallback for unmatched routes inside AuthPage */}
+      <Route
+        path="*"
+        element={
+          <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="p-8 bg-white rounded-lg shadow-lg text-center">
+              <h2 className="text-xl font-bold text-red-600 mb-2">404 - Route Not Found</h2>
+              <p className="text-gray-600">The requested path inside AuthPage was not found.</p>
+              <p className="text-xs text-gray-400 mt-2">Path: {window.location.pathname}</p>
+              <button
+                onClick={() => navigate('/login')}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Go to Login
+              </button>
+            </div>
+          </div>
         }
       />
     </Routes>

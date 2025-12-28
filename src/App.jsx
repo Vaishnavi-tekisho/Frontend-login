@@ -27,7 +27,9 @@ const ProtectedRoute = ({ children }) => {
     path: window.location.pathname,
     isAuthenticated,
     userEmail: user?.email,
-    verified: user?.email_verified
+    verified: user?.email_verified,
+    hasToken: !!AuthService.getToken(),
+    userDataKeys: user ? Object.keys(user) : []
   });
 
   if (!isAuthenticated) {
@@ -40,10 +42,12 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login/verify-email" replace />;
   }
 
+  console.log('✅ ProtectedRoute: Access granted');
   return children;
 };
 
 function App() {
+  console.log('🚀 [App.jsx] Rendering, path:', window.location.pathname);
 
   return (
     <Router>
@@ -53,12 +57,21 @@ function App() {
         <Route path='/oauth-success' element={<OAuthSuccess />} />
 
         {/* Protected Routes */}
-        <Route path='/dashboard' element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path='/dashboard/*' element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path='/card-scanner' element={<ProtectedRoute><CardScannerPage /></ProtectedRoute>} />
         <Route path="/company-person-profile" element={<ProtectedRoute><CompanyProfile /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path='/meetings' element={<ProtectedRoute><MeetingCapturePage /></ProtectedRoute>} />
         <Route path='/emails/*' element={<ProtectedRoute><EmailDraftPage /></ProtectedRoute>} />
+        <Route path='/emails/*' element={<ProtectedRoute><EmailDraftPage /></ProtectedRoute>} />
+
+        {/* Global Fallback for Debugging */}
+        <Route path="*" element={
+          <div className="p-10 text-center">
+            <h1 className="text-2xl font-bold text-red-600">404 - App Route Not Found</h1>
+            <p>Current Path: {window.location.pathname}</p>
+          </div>
+        } />
       </Routes>
     </Router>
   )

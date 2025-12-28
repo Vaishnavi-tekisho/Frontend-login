@@ -6,6 +6,9 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss(),],
+  server: {
+    port: 5173,
+  },
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {
